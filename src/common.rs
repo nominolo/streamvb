@@ -30,3 +30,6 @@ pub fn exact_compressed_len(input: &[u32]) -> usize {
     }
     len
 }
+
+#[cfg(test)]
+mod tests {}

@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rand::Rng;
-use streamvbyte2::scalar::encode::encode;
+use streamvbyte2::scalar::{decode::decode, encode::encode};
 
 #[inline]
 fn fibonacci(n: u64) -> u64 {
@@ -51,7 +51,7 @@ pub fn random_any_bit(count: usize) -> Vec<u32> {
             2 => rng.gen::<u16>() as u32,
             3 => rng.gen_range(0u32..16777216),
             4 => rng.gen::<u32>(),
-            _ => panic!("impossible")
+            _ => panic!("impossible"),
         };
         input.push(b);
     }
@@ -86,6 +86,39 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("scalar_encode/any-bit/8k*4B", |b| {
         b.iter(|| {
             let _ = encode(&input_any);
+        })
+    });
+
+    let (sz, encoded) = encode(&input_8bit);
+    //println!("{}x4B => {}B", sz, encoded.len());
+    c.bench_function("scalar_decode/8bit/8k*4B", |b| {
+        b.iter(|| {
+            let _ = decode(sz, &encoded);
+        })
+    });
+
+    let (sz, encoded) = encode(&input_16bit);
+    c.bench_function("scalar_decode/16bit/8k*4B", |b| {
+        b.iter(|| {
+            let _ = decode(sz, &encoded);
+        })
+    });
+
+    let (sz, encoded) = encode(&input_32bit);
+    c.bench_function("scalar_decode/32bit/8k*4B", |b| {
+        b.iter(|| {
+            let _ = decode(sz, &encoded);
+        })
+    });
+
+    // TODO: We should probably hard-code a few data sets. The performance seems
+    // to be highly variable. Probably, due to interactions with the branch
+    // predictor.
+    let (sz, encoded) = encode(&input_any);
+    //println!("{}x4B => {}B", sz, encoded.len());
+    c.bench_function("scalar_decode/any-bit/8k*4B", |b| {
+        b.iter(|| {
+            let _ = decode(sz, &encoded);
         })
     });
 

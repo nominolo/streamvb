@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use crate::common::{control_bytes_len, max_compressed_len};
 
 pub fn encode(input: &[u32]) -> (usize, Vec<u8>) {
@@ -46,8 +48,48 @@ fn encode_single(val: u32, out: &mut Vec<u8>) -> u8 {
     }
 }
 
+pub fn decode(len: usize, input: &[u8]) -> Vec<u32> {
+    if len == 0 {
+        return Vec::new();
+    }
+    let num_control_bytes = control_bytes_len(len);
+    let control = &input[0..num_control_bytes];
+    let data = &input[num_control_bytes..];
+    let mut result = Vec::with_capacity(len);
+    let mut offset = 0;
+    let mut key = control[0];
+    let mut control_offset = 1;
+    let mut shift = 0;
+    for _ in 0..len {
+        if shift == 8 {
+            key = control[control_offset];
+            control_offset += 1;
+            shift = 0;
+        }
+        let (val, bytes) = decode_single(&data[offset..], (key >> shift) & 0x3);
+        offset += bytes;
+        result.push(val);
+        shift += 2;
+    }
+    result
+}
+
+pub fn decode_single(data: &[u8], control: u8) -> (u32, usize) {
+    if control == 0 {
+        // 1 byte
+        (data[0] as u32, 1)
+    } else if control == 1 {
+        // 2 bytes
+        (u16::from_le_bytes([data[0], data[1]]) as u32, 2)
+    } else if control == 2 {
+        (u32::from_le_bytes([data[0], data[1], data[2], 0]), 3)
+    } else {
+        (u32::from_le_bytes(data[0..4].try_into().unwrap()), 4)
+    }
+}
+
 mod tests {
-    use super::encode;
+    use super::{decode, encode};
     #[test]
     fn single() {
         assert_eq!(encode(&[]), (0, vec![]));
@@ -63,5 +105,29 @@ mod tests {
         assert_eq!(encode(&[1, 2, 3]), (3, vec![0, 1, 2, 3]));
         assert_eq!(encode(&[1, 2, 3, 4]), (4, vec![0, 1, 2, 3, 4]));
         assert_eq!(encode(&[1, 2, 3, 4, 5]), (5, vec![0, 0, 1, 2, 3, 4, 5]));
+    }
+
+    #[test]
+    fn encode_decode() {
+        let inputs = &[
+            vec![],
+            vec![42],
+            vec![300],
+            vec![70000],
+            vec![0x12345678],
+            vec![1000, 2000],
+            vec![1, 2, 3],
+            vec![1, 288, 3],
+            vec![1, 288, 3, 94320],
+            vec![1, 288, 3, 123123, 83291],
+            vec![1, 288, 3, 123123, 83291, 82, 30],
+            vec![1, 288, 3, 123123, 83291, 82, 16621, 30],
+        ];
+        for input in inputs {
+            //println!("{:?}", input);
+            let (len, bytes) = encode(input);
+            let decoded = decode(len, &bytes);
+            assert_eq!(input, &decoded);
+        }
     }
 }

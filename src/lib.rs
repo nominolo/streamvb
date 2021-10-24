@@ -428,8 +428,10 @@ static SHUFFLE_TABLE: [[u8; 16]; 256] = [
     [   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12,   13,   14,   15, ],  
 ];
 
+#[cfg(target_arch = "x86-64")]
 use std::arch::x86_64::{__m128i, _mm_loadu_si128, _mm_shuffle_epi8, _mm_storeu_si128};
 
+#[cfg(target_arch = "x86-64")]
 pub fn decode_ssse3(control: &[u8], data: &[u8]) -> Vec<u32> {
     let mut result = Vec::with_capacity(control.len() * 4);
 
