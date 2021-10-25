@@ -1,0 +1,314 @@
+// Example:
+//
+// control byte: 00|01|11|00  =>  sizes: 1|2|4|1
+//
+// shuffle mask: describes where each output byte should be come from. `z` means
+// it should be set to zero. It is encoded as `0xff`
+//
+// [0, z, z, z, 1, 2, z, z, 3, 4, 5, 6, 7, z, z, z]
+//
+#[cfg(test)]
+#[test]
+fn build_shuffle_table() {
+    println!("#[rustfmt::skip]");
+    println!("static DECODE_SHUFFLE_TABLE: [[u8; 16]; 256] = [");
+    for b0 in 1..5 {
+        for b1 in 1..5 {
+            for b2 in 1..5 {
+                for b3 in 1..5 {
+                    let mut shuf = [0xff_u8; 16];
+                    let mut src_ofs = 0;
+                    #[allow(clippy::needless_range_loop)]
+                    for i in 0..b3 {
+                        shuf[i] = src_ofs;
+                        src_ofs += 1;
+                    }
+                    for i in 0..b2 {
+                        shuf[4 + i] = src_ofs;
+                        src_ofs += 1;
+                    }
+                    for i in 0..b1 {
+                        shuf[8 + i] = src_ofs;
+                        src_ofs += 1;
+                    }
+                    for i in 0..b0 {
+                        shuf[12 + i] = src_ofs;
+                        src_ofs += 1;
+                    }
+                    print!("    [");
+                    for b in shuf {
+                        if b < 0x80 {
+                            print!("{:4}, ", b);
+                        } else {
+                            print!("0xff, ");
+                        }
+                    }
+                    println!("],  // {}{}{}{}", b0 - 1, b1 - 1, b2 - 1, b3 - 1);
+                }
+            }
+        }
+    }
+    println!("];")
+}
+
+// generated using code above
+#[allow(unused)]  // TODO: use #[any(target=...)] to only include when needed
+#[rustfmt::skip]
+pub static DECODE_SHUFFLE_TABLE: [[u8; 16]; 256] = [
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3, 0xff, 0xff, 0xff, ],  // 0000
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3, 0xff, 0xff, 0xff,    4, 0xff, 0xff, 0xff, ],  // 0001
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4, 0xff, 0xff, 0xff,    5, 0xff, 0xff, 0xff, ],  // 0002
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5, 0xff, 0xff, 0xff,    6, 0xff, 0xff, 0xff, ],  // 0003
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3, 0xff, 0xff, 0xff,    4, 0xff, 0xff, 0xff, ],  // 0010
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4, 0xff, 0xff, 0xff,    5, 0xff, 0xff, 0xff, ],  // 0011
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5, 0xff, 0xff, 0xff,    6, 0xff, 0xff, 0xff, ],  // 0012
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6, 0xff, 0xff, 0xff,    7, 0xff, 0xff, 0xff, ],  // 0013
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4, 0xff, 0xff, 0xff,    5, 0xff, 0xff, 0xff, ],  // 0020
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5, 0xff, 0xff, 0xff,    6, 0xff, 0xff, 0xff, ],  // 0021
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6, 0xff, 0xff, 0xff,    7, 0xff, 0xff, 0xff, ],  // 0022
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7, 0xff, 0xff, 0xff,    8, 0xff, 0xff, 0xff, ],  // 0023
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5, 0xff, 0xff, 0xff,    6, 0xff, 0xff, 0xff, ],  // 0030
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6, 0xff, 0xff, 0xff,    7, 0xff, 0xff, 0xff, ],  // 0031
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7, 0xff, 0xff, 0xff,    8, 0xff, 0xff, 0xff, ],  // 0032
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8, 0xff, 0xff, 0xff,    9, 0xff, 0xff, 0xff, ],  // 0033
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2,    3, 0xff, 0xff,    4, 0xff, 0xff, 0xff, ],  // 0100
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4, 0xff, 0xff,    5, 0xff, 0xff, 0xff, ],  // 0101
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4,    5, 0xff, 0xff,    6, 0xff, 0xff, 0xff, ],  // 0102
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5,    6, 0xff, 0xff,    7, 0xff, 0xff, 0xff, ],  // 0103
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3,    4, 0xff, 0xff,    5, 0xff, 0xff, 0xff, ],  // 0110
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5, 0xff, 0xff,    6, 0xff, 0xff, 0xff, ],  // 0111
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5,    6, 0xff, 0xff,    7, 0xff, 0xff, 0xff, ],  // 0112
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6,    7, 0xff, 0xff,    8, 0xff, 0xff, 0xff, ],  // 0113
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4,    5, 0xff, 0xff,    6, 0xff, 0xff, 0xff, ],  // 0120
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6, 0xff, 0xff,    7, 0xff, 0xff, 0xff, ],  // 0121
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6,    7, 0xff, 0xff,    8, 0xff, 0xff, 0xff, ],  // 0122
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7,    8, 0xff, 0xff,    9, 0xff, 0xff, 0xff, ],  // 0123
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5,    6, 0xff, 0xff,    7, 0xff, 0xff, 0xff, ],  // 0130
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6,    7, 0xff, 0xff,    8, 0xff, 0xff, 0xff, ],  // 0131
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7,    8, 0xff, 0xff,    9, 0xff, 0xff, 0xff, ],  // 0132
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8,    9, 0xff, 0xff,   10, 0xff, 0xff, 0xff, ],  // 0133
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2,    3,    4, 0xff,    5, 0xff, 0xff, 0xff, ],  // 0200
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4,    5, 0xff,    6, 0xff, 0xff, 0xff, ],  // 0201
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4,    5,    6, 0xff,    7, 0xff, 0xff, 0xff, ],  // 0202
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5,    6,    7, 0xff,    8, 0xff, 0xff, 0xff, ],  // 0203
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3,    4,    5, 0xff,    6, 0xff, 0xff, 0xff, ],  // 0210
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5,    6, 0xff,    7, 0xff, 0xff, 0xff, ],  // 0211
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5,    6,    7, 0xff,    8, 0xff, 0xff, 0xff, ],  // 0212
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6,    7,    8, 0xff,    9, 0xff, 0xff, 0xff, ],  // 0213
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4,    5,    6, 0xff,    7, 0xff, 0xff, 0xff, ],  // 0220
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6,    7, 0xff,    8, 0xff, 0xff, 0xff, ],  // 0221
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6,    7,    8, 0xff,    9, 0xff, 0xff, 0xff, ],  // 0222
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7,    8,    9, 0xff,   10, 0xff, 0xff, 0xff, ],  // 0223
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5,    6,    7, 0xff,    8, 0xff, 0xff, 0xff, ],  // 0230
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6,    7,    8, 0xff,    9, 0xff, 0xff, 0xff, ],  // 0231
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7,    8,    9, 0xff,   10, 0xff, 0xff, 0xff, ],  // 0232
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10, 0xff,   11, 0xff, 0xff, 0xff, ],  // 0233
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2,    3,    4,    5,    6, 0xff, 0xff, 0xff, ],  // 0300
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4,    5,    6,    7, 0xff, 0xff, 0xff, ],  // 0301
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4,    5,    6,    7,    8, 0xff, 0xff, 0xff, ],  // 0302
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5,    6,    7,    8,    9, 0xff, 0xff, 0xff, ],  // 0303
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3,    4,    5,    6,    7, 0xff, 0xff, 0xff, ],  // 0310
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5,    6,    7,    8, 0xff, 0xff, 0xff, ],  // 0311
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5,    6,    7,    8,    9, 0xff, 0xff, 0xff, ],  // 0312
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6,    7,    8,    9,   10, 0xff, 0xff, 0xff, ],  // 0313
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4,    5,    6,    7,    8, 0xff, 0xff, 0xff, ],  // 0320
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6,    7,    8,    9, 0xff, 0xff, 0xff, ],  // 0321
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6,    7,    8,    9,   10, 0xff, 0xff, 0xff, ],  // 0322
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7,    8,    9,   10,   11, 0xff, 0xff, 0xff, ],  // 0323
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5,    6,    7,    8,    9, 0xff, 0xff, 0xff, ],  // 0330
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6,    7,    8,    9,   10, 0xff, 0xff, 0xff, ],  // 0331
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7,    8,    9,   10,   11, 0xff, 0xff, 0xff, ],  // 0332
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12, 0xff, 0xff, 0xff, ],  // 0333
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4, 0xff, 0xff, ],  // 1000
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3, 0xff, 0xff, 0xff,    4,    5, 0xff, 0xff, ],  // 1001
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4, 0xff, 0xff, 0xff,    5,    6, 0xff, 0xff, ],  // 1002
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5, 0xff, 0xff, 0xff,    6,    7, 0xff, 0xff, ],  // 1003
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3, 0xff, 0xff, 0xff,    4,    5, 0xff, 0xff, ],  // 1010
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4, 0xff, 0xff, 0xff,    5,    6, 0xff, 0xff, ],  // 1011
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5, 0xff, 0xff, 0xff,    6,    7, 0xff, 0xff, ],  // 1012
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6, 0xff, 0xff, 0xff,    7,    8, 0xff, 0xff, ],  // 1013
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4, 0xff, 0xff, 0xff,    5,    6, 0xff, 0xff, ],  // 1020
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5, 0xff, 0xff, 0xff,    6,    7, 0xff, 0xff, ],  // 1021
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6, 0xff, 0xff, 0xff,    7,    8, 0xff, 0xff, ],  // 1022
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7, 0xff, 0xff, 0xff,    8,    9, 0xff, 0xff, ],  // 1023
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5, 0xff, 0xff, 0xff,    6,    7, 0xff, 0xff, ],  // 1030
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6, 0xff, 0xff, 0xff,    7,    8, 0xff, 0xff, ],  // 1031
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7, 0xff, 0xff, 0xff,    8,    9, 0xff, 0xff, ],  // 1032
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8, 0xff, 0xff, 0xff,    9,   10, 0xff, 0xff, ],  // 1033
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5, 0xff, 0xff, ],  // 1100
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4, 0xff, 0xff,    5,    6, 0xff, 0xff, ],  // 1101
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4,    5, 0xff, 0xff,    6,    7, 0xff, 0xff, ],  // 1102
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5,    6, 0xff, 0xff,    7,    8, 0xff, 0xff, ],  // 1103
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3,    4, 0xff, 0xff,    5,    6, 0xff, 0xff, ],  // 1110
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5, 0xff, 0xff,    6,    7, 0xff, 0xff, ],  // 1111
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5,    6, 0xff, 0xff,    7,    8, 0xff, 0xff, ],  // 1112
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6,    7, 0xff, 0xff,    8,    9, 0xff, 0xff, ],  // 1113
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4,    5, 0xff, 0xff,    6,    7, 0xff, 0xff, ],  // 1120
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6, 0xff, 0xff,    7,    8, 0xff, 0xff, ],  // 1121
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6,    7, 0xff, 0xff,    8,    9, 0xff, 0xff, ],  // 1122
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7,    8, 0xff, 0xff,    9,   10, 0xff, 0xff, ],  // 1123
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5,    6, 0xff, 0xff,    7,    8, 0xff, 0xff, ],  // 1130
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6,    7, 0xff, 0xff,    8,    9, 0xff, 0xff, ],  // 1131
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7,    8, 0xff, 0xff,    9,   10, 0xff, 0xff, ],  // 1132
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8,    9, 0xff, 0xff,   10,   11, 0xff, 0xff, ],  // 1133
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6, 0xff, 0xff, ],  // 1200
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4,    5, 0xff,    6,    7, 0xff, 0xff, ],  // 1201
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4,    5,    6, 0xff,    7,    8, 0xff, 0xff, ],  // 1202
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5,    6,    7, 0xff,    8,    9, 0xff, 0xff, ],  // 1203
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3,    4,    5, 0xff,    6,    7, 0xff, 0xff, ],  // 1210
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5,    6, 0xff,    7,    8, 0xff, 0xff, ],  // 1211
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5,    6,    7, 0xff,    8,    9, 0xff, 0xff, ],  // 1212
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6,    7,    8, 0xff,    9,   10, 0xff, 0xff, ],  // 1213
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4,    5,    6, 0xff,    7,    8, 0xff, 0xff, ],  // 1220
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6,    7, 0xff,    8,    9, 0xff, 0xff, ],  // 1221
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6,    7,    8, 0xff,    9,   10, 0xff, 0xff, ],  // 1222
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7,    8,    9, 0xff,   10,   11, 0xff, 0xff, ],  // 1223
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5,    6,    7, 0xff,    8,    9, 0xff, 0xff, ],  // 1230
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6,    7,    8, 0xff,    9,   10, 0xff, 0xff, ],  // 1231
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7,    8,    9, 0xff,   10,   11, 0xff, 0xff, ],  // 1232
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10, 0xff,   11,   12, 0xff, 0xff, ],  // 1233
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2,    3,    4,    5,    6,    7, 0xff, 0xff, ],  // 1300
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4,    5,    6,    7,    8, 0xff, 0xff, ],  // 1301
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4,    5,    6,    7,    8,    9, 0xff, 0xff, ],  // 1302
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5,    6,    7,    8,    9,   10, 0xff, 0xff, ],  // 1303
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3,    4,    5,    6,    7,    8, 0xff, 0xff, ],  // 1310
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5,    6,    7,    8,    9, 0xff, 0xff, ],  // 1311
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5,    6,    7,    8,    9,   10, 0xff, 0xff, ],  // 1312
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6,    7,    8,    9,   10,   11, 0xff, 0xff, ],  // 1313
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4,    5,    6,    7,    8,    9, 0xff, 0xff, ],  // 1320
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6,    7,    8,    9,   10, 0xff, 0xff, ],  // 1321
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6,    7,    8,    9,   10,   11, 0xff, 0xff, ],  // 1322
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7,    8,    9,   10,   11,   12, 0xff, 0xff, ],  // 1323
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10, 0xff, 0xff, ],  // 1330
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11, 0xff, 0xff, ],  // 1331
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12, 0xff, 0xff, ],  // 1332
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12,   13, 0xff, 0xff, ],  // 1333
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4,    5, 0xff, ],  // 2000
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3, 0xff, 0xff, 0xff,    4,    5,    6, 0xff, ],  // 2001
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4, 0xff, 0xff, 0xff,    5,    6,    7, 0xff, ],  // 2002
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5, 0xff, 0xff, 0xff,    6,    7,    8, 0xff, ],  // 2003
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3, 0xff, 0xff, 0xff,    4,    5,    6, 0xff, ],  // 2010
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4, 0xff, 0xff, 0xff,    5,    6,    7, 0xff, ],  // 2011
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5, 0xff, 0xff, 0xff,    6,    7,    8, 0xff, ],  // 2012
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6, 0xff, 0xff, 0xff,    7,    8,    9, 0xff, ],  // 2013
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4, 0xff, 0xff, 0xff,    5,    6,    7, 0xff, ],  // 2020
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5, 0xff, 0xff, 0xff,    6,    7,    8, 0xff, ],  // 2021
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6, 0xff, 0xff, 0xff,    7,    8,    9, 0xff, ],  // 2022
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7, 0xff, 0xff, 0xff,    8,    9,   10, 0xff, ],  // 2023
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5, 0xff, 0xff, 0xff,    6,    7,    8, 0xff, ],  // 2030
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6, 0xff, 0xff, 0xff,    7,    8,    9, 0xff, ],  // 2031
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7, 0xff, 0xff, 0xff,    8,    9,   10, 0xff, ],  // 2032
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8, 0xff, 0xff, 0xff,    9,   10,   11, 0xff, ],  // 2033
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5,    6, 0xff, ],  // 2100
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4, 0xff, 0xff,    5,    6,    7, 0xff, ],  // 2101
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4,    5, 0xff, 0xff,    6,    7,    8, 0xff, ],  // 2102
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5,    6, 0xff, 0xff,    7,    8,    9, 0xff, ],  // 2103
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3,    4, 0xff, 0xff,    5,    6,    7, 0xff, ],  // 2110
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5, 0xff, 0xff,    6,    7,    8, 0xff, ],  // 2111
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5,    6, 0xff, 0xff,    7,    8,    9, 0xff, ],  // 2112
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6,    7, 0xff, 0xff,    8,    9,   10, 0xff, ],  // 2113
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4,    5, 0xff, 0xff,    6,    7,    8, 0xff, ],  // 2120
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6, 0xff, 0xff,    7,    8,    9, 0xff, ],  // 2121
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6,    7, 0xff, 0xff,    8,    9,   10, 0xff, ],  // 2122
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7,    8, 0xff, 0xff,    9,   10,   11, 0xff, ],  // 2123
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5,    6, 0xff, 0xff,    7,    8,    9, 0xff, ],  // 2130
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6,    7, 0xff, 0xff,    8,    9,   10, 0xff, ],  // 2131
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7,    8, 0xff, 0xff,    9,   10,   11, 0xff, ],  // 2132
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8,    9, 0xff, 0xff,   10,   11,   12, 0xff, ],  // 2133
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6,    7, 0xff, ],  // 2200
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4,    5, 0xff,    6,    7,    8, 0xff, ],  // 2201
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4,    5,    6, 0xff,    7,    8,    9, 0xff, ],  // 2202
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5,    6,    7, 0xff,    8,    9,   10, 0xff, ],  // 2203
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3,    4,    5, 0xff,    6,    7,    8, 0xff, ],  // 2210
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5,    6, 0xff,    7,    8,    9, 0xff, ],  // 2211
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5,    6,    7, 0xff,    8,    9,   10, 0xff, ],  // 2212
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6,    7,    8, 0xff,    9,   10,   11, 0xff, ],  // 2213
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4,    5,    6, 0xff,    7,    8,    9, 0xff, ],  // 2220
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6,    7, 0xff,    8,    9,   10, 0xff, ],  // 2221
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6,    7,    8, 0xff,    9,   10,   11, 0xff, ],  // 2222
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7,    8,    9, 0xff,   10,   11,   12, 0xff, ],  // 2223
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5,    6,    7, 0xff,    8,    9,   10, 0xff, ],  // 2230
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6,    7,    8, 0xff,    9,   10,   11, 0xff, ],  // 2231
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7,    8,    9, 0xff,   10,   11,   12, 0xff, ],  // 2232
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10, 0xff,   11,   12,   13, 0xff, ],  // 2233
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2,    3,    4,    5,    6,    7,    8, 0xff, ],  // 2300
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4,    5,    6,    7,    8,    9, 0xff, ],  // 2301
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4,    5,    6,    7,    8,    9,   10, 0xff, ],  // 2302
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5,    6,    7,    8,    9,   10,   11, 0xff, ],  // 2303
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3,    4,    5,    6,    7,    8,    9, 0xff, ],  // 2310
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5,    6,    7,    8,    9,   10, 0xff, ],  // 2311
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5,    6,    7,    8,    9,   10,   11, 0xff, ],  // 2312
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6,    7,    8,    9,   10,   11,   12, 0xff, ],  // 2313
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4,    5,    6,    7,    8,    9,   10, 0xff, ],  // 2320
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6,    7,    8,    9,   10,   11, 0xff, ],  // 2321
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6,    7,    8,    9,   10,   11,   12, 0xff, ],  // 2322
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7,    8,    9,   10,   11,   12,   13, 0xff, ],  // 2323
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11, 0xff, ],  // 2330
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12, 0xff, ],  // 2331
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12,   13, 0xff, ],  // 2332
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12,   13,   14, 0xff, ],  // 2333
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4,    5,    6, ],  // 3000
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3, 0xff, 0xff, 0xff,    4,    5,    6,    7, ],  // 3001
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4, 0xff, 0xff, 0xff,    5,    6,    7,    8, ],  // 3002
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5, 0xff, 0xff, 0xff,    6,    7,    8,    9, ],  // 3003
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3, 0xff, 0xff, 0xff,    4,    5,    6,    7, ],  // 3010
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4, 0xff, 0xff, 0xff,    5,    6,    7,    8, ],  // 3011
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5, 0xff, 0xff, 0xff,    6,    7,    8,    9, ],  // 3012
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6, 0xff, 0xff, 0xff,    7,    8,    9,   10, ],  // 3013
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4, 0xff, 0xff, 0xff,    5,    6,    7,    8, ],  // 3020
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5, 0xff, 0xff, 0xff,    6,    7,    8,    9, ],  // 3021
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6, 0xff, 0xff, 0xff,    7,    8,    9,   10, ],  // 3022
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7, 0xff, 0xff, 0xff,    8,    9,   10,   11, ],  // 3023
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5, 0xff, 0xff, 0xff,    6,    7,    8,    9, ],  // 3030
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6, 0xff, 0xff, 0xff,    7,    8,    9,   10, ],  // 3031
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7, 0xff, 0xff, 0xff,    8,    9,   10,   11, ],  // 3032
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8, 0xff, 0xff, 0xff,    9,   10,   11,   12, ],  // 3033
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5,    6,    7, ],  // 3100
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4, 0xff, 0xff,    5,    6,    7,    8, ],  // 3101
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4,    5, 0xff, 0xff,    6,    7,    8,    9, ],  // 3102
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5,    6, 0xff, 0xff,    7,    8,    9,   10, ],  // 3103
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3,    4, 0xff, 0xff,    5,    6,    7,    8, ],  // 3110
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5, 0xff, 0xff,    6,    7,    8,    9, ],  // 3111
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5,    6, 0xff, 0xff,    7,    8,    9,   10, ],  // 3112
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6,    7, 0xff, 0xff,    8,    9,   10,   11, ],  // 3113
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4,    5, 0xff, 0xff,    6,    7,    8,    9, ],  // 3120
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6, 0xff, 0xff,    7,    8,    9,   10, ],  // 3121
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6,    7, 0xff, 0xff,    8,    9,   10,   11, ],  // 3122
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7,    8, 0xff, 0xff,    9,   10,   11,   12, ],  // 3123
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5,    6, 0xff, 0xff,    7,    8,    9,   10, ],  // 3130
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6,    7, 0xff, 0xff,    8,    9,   10,   11, ],  // 3131
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7,    8, 0xff, 0xff,    9,   10,   11,   12, ],  // 3132
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8,    9, 0xff, 0xff,   10,   11,   12,   13, ],  // 3133
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6,    7,    8, ],  // 3200
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4,    5, 0xff,    6,    7,    8,    9, ],  // 3201
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4,    5,    6, 0xff,    7,    8,    9,   10, ],  // 3202
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5,    6,    7, 0xff,    8,    9,   10,   11, ],  // 3203
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3,    4,    5, 0xff,    6,    7,    8,    9, ],  // 3210
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5,    6, 0xff,    7,    8,    9,   10, ],  // 3211
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5,    6,    7, 0xff,    8,    9,   10,   11, ],  // 3212
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6,    7,    8, 0xff,    9,   10,   11,   12, ],  // 3213
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4,    5,    6, 0xff,    7,    8,    9,   10, ],  // 3220
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6,    7, 0xff,    8,    9,   10,   11, ],  // 3221
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6,    7,    8, 0xff,    9,   10,   11,   12, ],  // 3222
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7,    8,    9, 0xff,   10,   11,   12,   13, ],  // 3223
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5,    6,    7, 0xff,    8,    9,   10,   11, ],  // 3230
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6,    7,    8, 0xff,    9,   10,   11,   12, ],  // 3231
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7,    8,    9, 0xff,   10,   11,   12,   13, ],  // 3232
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10, 0xff,   11,   12,   13,   14, ],  // 3233
+    [   0, 0xff, 0xff, 0xff,    1, 0xff, 0xff, 0xff,    2,    3,    4,    5,    6,    7,    8,    9, ],  // 3300
+    [   0,    1, 0xff, 0xff,    2, 0xff, 0xff, 0xff,    3,    4,    5,    6,    7,    8,    9,   10, ],  // 3301
+    [   0,    1,    2, 0xff,    3, 0xff, 0xff, 0xff,    4,    5,    6,    7,    8,    9,   10,   11, ],  // 3302
+    [   0,    1,    2,    3,    4, 0xff, 0xff, 0xff,    5,    6,    7,    8,    9,   10,   11,   12, ],  // 3303
+    [   0, 0xff, 0xff, 0xff,    1,    2, 0xff, 0xff,    3,    4,    5,    6,    7,    8,    9,   10, ],  // 3310
+    [   0,    1, 0xff, 0xff,    2,    3, 0xff, 0xff,    4,    5,    6,    7,    8,    9,   10,   11, ],  // 3311
+    [   0,    1,    2, 0xff,    3,    4, 0xff, 0xff,    5,    6,    7,    8,    9,   10,   11,   12, ],  // 3312
+    [   0,    1,    2,    3,    4,    5, 0xff, 0xff,    6,    7,    8,    9,   10,   11,   12,   13, ],  // 3313
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3, 0xff,    4,    5,    6,    7,    8,    9,   10,   11, ],  // 3320
+    [   0,    1, 0xff, 0xff,    2,    3,    4, 0xff,    5,    6,    7,    8,    9,   10,   11,   12, ],  // 3321
+    [   0,    1,    2, 0xff,    3,    4,    5, 0xff,    6,    7,    8,    9,   10,   11,   12,   13, ],  // 3322
+    [   0,    1,    2,    3,    4,    5,    6, 0xff,    7,    8,    9,   10,   11,   12,   13,   14, ],  // 3323
+    [   0, 0xff, 0xff, 0xff,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12, ],  // 3330
+    [   0,    1, 0xff, 0xff,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12,   13, ],  // 3331
+    [   0,    1,    2, 0xff,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12,   13,   14, ],  // 3332
+    [   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12,   13,   14,   15, ],  // 3333
+];
