@@ -5,33 +5,42 @@ pub fn decode(len: usize, input: &[u8]) -> Vec<u32> {
         return Vec::new();
     }
     let num_control_bytes = control_bytes_len(len);
-    let mut control: *const u8 = input.as_ptr();
-    let mut data: *const u8 = unsafe { input.as_ptr().add(num_control_bytes) };
+    let control: *const u8 = input.as_ptr();
+    let data: *const u8 = unsafe { input.as_ptr().add(num_control_bytes) };
     let mut result: Vec<u32> = Vec::with_capacity(len);
-    let mut out: *mut u32 = result.as_mut_ptr();
-    let mut key = unsafe { *control };
-    unsafe { control = control.add(1) };
-    let mut shift = 0;
-    for _ in 0..len {
-        if shift == 8 {
-            key = unsafe { *control };
-            unsafe { control = control.add(1) };
-            shift = 0;
-        }
-        let (val, bytes) = unsafe { decode_single(data, (key >> shift) & 0x3) };
-        unsafe {
-            data = data.add(bytes);
-            *out = val;
-            out = out.add(1);
-        };
-        shift += 2;
-    }
+    let out: *mut u32 = result.as_mut_ptr();
     unsafe {
+        decode_inner(control, data, out, len);
         result.set_len(len);
     }
     result
 }
 
+#[inline]
+pub(crate) unsafe fn decode_inner(
+    mut control: *const u8,
+    mut data: *const u8,
+    mut out: *mut u32,
+    len: usize,
+) {
+    let mut key = *control;
+    control = control.add(1);
+    let mut shift = 0;
+    for _ in 0..len {
+        if shift == 8 {
+            key = *control;
+            control = control.add(1);
+            shift = 0;
+        }
+        let (val, bytes) = decode_single(data, (key >> shift) & 0x3);
+        data = data.add(bytes);
+        *out = val;
+        out = out.add(1);
+        shift += 2;
+    }
+}
+
+#[inline]
 unsafe fn decode_single(data: *const u8, control: u8) -> (u32, usize) {
     if control == 0 {
         // 1 byte
