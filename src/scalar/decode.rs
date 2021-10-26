@@ -1,6 +1,8 @@
 use crate::common::control_bytes_len;
 
 pub fn decode(len: usize, input: &[u8]) -> Vec<u32> {
+    // FIXME: We currently totally trust `len`. That can cause us to read past
+    // the end.
     if len == 0 {
         return Vec::new();
     }
