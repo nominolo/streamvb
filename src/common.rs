@@ -2,14 +2,13 @@ use std::mem;
 
 /// Maximum length of the compressed output vector.
 pub fn max_compressed_len(input_len: usize) -> usize {
-    let simd_max_overread = 16 - 4;
     let max_data_bytes = input_len * mem::size_of::<u32>();
-    control_bytes_len(input_len) + max_data_bytes + simd_max_overread
+    control_bytes_len(input_len) + max_data_bytes
 }
 
 /// Exact number of control bytes in the compressed output vector.
 pub fn control_bytes_len(input_len: usize) -> usize {
-    // 2 bits per input, round up to next byte
+    // 4 numbers per control byte (2 bits per input), round up to next byte
     (input_len + 3) / 4
 }
 
@@ -29,6 +28,11 @@ pub fn exact_compressed_len(input: &[u32]) -> usize {
         }
     }
     len
+}
+
+#[derive(Debug)]
+pub enum StreamVbyteError {
+    DecodeOutOfBounds,
 }
 
 #[cfg(test)]

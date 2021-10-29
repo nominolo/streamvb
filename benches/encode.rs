@@ -138,6 +138,22 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    let (sz, encoded) = encode(&input_16bit);
+    //println!("{}x4B => {}B", sz, encoded.len());
+    c.bench_function("simd_decode_unroll/16bit/8k*4B", |b| {
+        b.iter(|| {
+            let _ = streamvbyte2::x86_64::decode::decode_simd1(sz, &encoded);
+        })
+    });
+
+    let (sz, encoded) = encode(&input_16bit);
+    //println!("{}x4B => {}B", sz, encoded.len());
+    c.bench_function("simd_decode_tr/16bit/8k*4B", |b| {
+        b.iter(|| {
+            let _ = unsafe { streamvbyte2::x86_64::decode::decode_simd_trusted_len(sz, &encoded) };
+        })
+    });
+
     let (sz, encoded) = encode(&input_32bit);
     //println!("{}x4B => {}B", sz, encoded.len());
     c.bench_function("simd_decode/32bit/8k*4B", |b| {
