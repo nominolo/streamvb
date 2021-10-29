@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rand::Rng;
-use streamvbyte2::scalar::{decode::decode, encode::encode};
+use streamvb::scalar::{decode::decode, encode::encode};
 
 #[inline]
 fn fibonacci(n: u64) -> u64 {
@@ -126,7 +126,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     //println!("{}x4B => {}B", sz, encoded.len());
     c.bench_function("simd_decode/8bit/8k*4B", |b| {
         b.iter(|| {
-            let _ = streamvbyte2::x86_64::decode::decode_simd(sz, &encoded);
+            let _ = streamvb::x86_64::decode::decode_simd(sz, &encoded);
         })
     });
 
@@ -134,7 +134,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     //println!("{}x4B => {}B", sz, encoded.len());
     c.bench_function("simd_decode/16bit/8k*4B", |b| {
         b.iter(|| {
-            let _ = streamvbyte2::x86_64::decode::decode_simd(sz, &encoded);
+            let _ = streamvb::x86_64::decode::decode_simd(sz, &encoded);
         })
     });
 
@@ -142,7 +142,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     //println!("{}x4B => {}B", sz, encoded.len());
     c.bench_function("simd_decode_unroll/16bit/8k*4B", |b| {
         b.iter(|| {
-            let _ = streamvbyte2::x86_64::decode::decode_simd1(sz, &encoded);
+            let _ = streamvb::x86_64::decode::decode_simd1(sz, &encoded);
         })
     });
 
@@ -150,7 +150,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     //println!("{}x4B => {}B", sz, encoded.len());
     c.bench_function("simd_decode_tr/16bit/8k*4B", |b| {
         b.iter(|| {
-            let _ = unsafe { streamvbyte2::x86_64::decode::decode_simd_trusted_len(sz, &encoded) };
+            let _ = unsafe { streamvb::x86_64::decode::decode_simd_trusted_len(sz, &encoded) };
         })
     });
 
@@ -158,7 +158,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     //println!("{}x4B => {}B", sz, encoded.len());
     c.bench_function("simd_decode/32bit/8k*4B", |b| {
         b.iter(|| {
-            let _ = streamvbyte2::x86_64::decode::decode_simd(sz, &encoded);
+            let _ = streamvb::x86_64::decode::decode_simd(sz, &encoded);
         })
     });
 
@@ -166,7 +166,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     //println!("{}x4B => {}B", sz, encoded.len());
     c.bench_function("simd_decode/any-bit/8k*4B", |b| {
         b.iter(|| {
-            let _ = streamvbyte2::x86_64::decode::decode_simd(sz, &encoded);
+            let _ = streamvb::x86_64::decode::decode_simd(sz, &encoded);
         })
     });
 }
