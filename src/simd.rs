@@ -1,20 +1,24 @@
+//! Version of the various encoding/decoding functions that are guaranteed to
+//! use SIMD. Use these versions if you want guaranteed best performance and
+//! get a compiler error otherwise.
 use multiversion::{multiversion, target};
 
 use crate::common::StreamVbyteError;
 
-/*
-#[multiversion]
-#[clone(target = "[x86|x86_64]+ssse3")]
-#[clone(target = "[aarch64]+neon")]
-#[allow(unreachable_code)]
+#[allow(clippy::needless_return)]
 pub fn decode(len: usize, input: &[u8]) -> Result<Vec<u32>, StreamVbyteError> {
-    #[target_cfg(target = "[x86,x86_64]+ssse3")]
-    return crate::x86_64::decode::decode_simd1(len, input);
+    #[cfg(all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "ssse3"
+    ))]
+    {
+        // println!("Using x86-64 simd");
+        return crate::x86_64::decode::decode_simd1(len, input);
+    }
 
-    #[target_cfg(target = "[aarch64]+neon")]
-    return crate::aarch64::decode::decode_simd(len, input);
-
-    #[target_cfg(not(any(target = "[x86,x86_64]+ssse3", target = "[aarch64]+neon")))]
-    crate::scalar::decode::decode(len, input)
+    #[cfg(all(target_arch = "aarch64", feature = "aarch64-simd"))]
+    {
+        // println!("Using aarch64 simd");
+        return crate::aarch64::decode::decode_simd(len, input);
+    }
 }
-*/

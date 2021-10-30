@@ -6,12 +6,19 @@ pub mod common;
 pub mod scalar;
 pub(crate) mod tables;
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+// #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "ssse3"))]
 pub mod x86_64;
 
 #[cfg(all(target_arch = "aarch64", feature = "aarch64-simd"))]
 pub mod aarch64;
 
+#[cfg(any(
+    all(target_arch = "aarch64", feature = "aarch64-simd"),
+    all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "ssse3"
+    )
+))]
 pub mod simd;
 
 #[cfg(test)]
@@ -23,8 +30,12 @@ pub fn encode(values: &[u32]) -> (usize, Vec<u8>) {
     crate::scalar::encode::encode(values)
 }
 
+#[allow(clippy::needless_return)]
 pub fn decode(len: usize, input: &[u8]) -> Result<Vec<u32>, StreamVbyteError> {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    #[cfg(all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "ssse3"
+    ))]
     {
         // println!("Using x86-64 simd");
         return crate::x86_64::decode::decode_simd1(len, input);
@@ -38,7 +49,10 @@ pub fn decode(len: usize, input: &[u8]) -> Result<Vec<u32>, StreamVbyteError> {
 
     #[cfg(not(any(
         all(target_arch = "aarch64", feature = "aarch64-simd"),
-        any(target_arch = "x86", target_arch = "x86_64")
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "ssse3"
+        )
     )))]
     {
         // println!("Using scalar");
