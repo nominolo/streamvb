@@ -12,7 +12,7 @@ aarch64-simd = []  # nightly only
 multiversion = "0.6"
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = { version = "0.3", features=["html_reports"] }
 rand = "0.8"
 
 [[bench]]

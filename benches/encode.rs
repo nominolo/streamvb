@@ -58,6 +58,41 @@ pub fn random_any_bit(count: usize) -> Vec<u32> {
     input
 }
 
+pub fn bench_memcpy(c: &mut Criterion) {
+    let mut group = c.benchmark_group("memcpy");
+    for power in 10..15 {
+        let n = 1 << power;
+        let input: Vec<u32> = random_any_bit(n);
+        let mut output: Vec<u32> = vec![0; n];
+        group.throughput(Throughput::Elements(n as u64));
+        group.bench_with_input(format!("n={}k", n / 1024), &input, |b, input| {
+            b.iter(|| output.copy_from_slice(input))
+        });
+    }
+    group.finish();
+}
+
+pub fn bench_encode(c: &mut Criterion) {
+    let mut group = c.benchmark_group("encode_scalar");
+    for power in 10..15 {
+        let n = 1 << power;
+
+        for (bitname, input) in [("8bit", random_8bit(n)), ("any-bit", random_any_bit(n))] {
+            group.throughput(Throughput::Elements(n as u64));
+            group.bench_with_input(
+                format!("{}/n={}k", bitname, n / 1024),
+                &input,
+                |b, input| {
+                    b.iter(|| {
+                        let (_len, _bytes) = encode(input);
+                    })
+                },
+            );
+        }
+    }
+    group.finish();
+}
+
 pub fn criterion_benchmark(c: &mut Criterion) {
     let input_8bit = random_8bit(8192);
     let input_16bit: Vec<u32> = random_16bit(8192);
@@ -77,7 +112,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     }
     group.finish();
 
-    // let mut group =
+    //    let mut enc_group = c.benchmark_group("encode");
 
     c.bench_function("memcpy/8k*4B", |b| {
         b.iter(|| output.copy_from_slice(&input_8bit))
@@ -193,5 +228,5 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, criterion_benchmark);
+criterion_group!(benches, bench_memcpy, bench_encode);
 criterion_main!(benches);
