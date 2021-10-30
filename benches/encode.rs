@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use rand::Rng;
 use streamvb::scalar::{decode::decode, encode::encode};
 
@@ -65,6 +65,20 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let input_any: Vec<u32> = random_any_bit(8192);
     let mut output: Vec<u32> = vec![0; 8192];
 
+    let mut group = c.benchmark_group("memcpy");
+    for power in 10..15 {
+        let n = 1 << power;
+        let input: Vec<u32> = random_any_bit(n);
+        let mut output: Vec<u32> = vec![0; n];
+        group.throughput(Throughput::Elements(n as u64));
+        group.bench_with_input(format!("n={}k", n / 1024), &input, |b, input| {
+            b.iter(|| output.copy_from_slice(input))
+        });
+    }
+    group.finish();
+
+    // let mut group =
+
     c.bench_function("memcpy/8k*4B", |b| {
         b.iter(|| output.copy_from_slice(&input_8bit))
     });
@@ -122,53 +136,61 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    let (sz, encoded) = encode(&input_8bit);
-    //println!("{}x4B => {}B", sz, encoded.len());
-    c.bench_function("simd_decode/8bit/8k*4B", |b| {
-        b.iter(|| {
-            let _ = streamvb::x86_64::decode::decode_simd(sz, &encoded);
-        })
-    });
+    #[cfg(any(
+        all(target_arch = "aarch64", feature = "aarch64-simd"),
+        any(target_arch = "x86", target_arch = "x86_64")
+    ))]
+    {
+        let (sz, encoded) = encode(&input_8bit);
+        //println!("{}x4B => {}B", sz, encoded.len());
+        c.bench_function("simd_decode/8bit/8k*4B", |b| {
+            b.iter(|| {
+                let _ = streamvb::simd::decode(sz, &encoded);
+            })
+        });
 
-    let (sz, encoded) = encode(&input_16bit);
-    //println!("{}x4B => {}B", sz, encoded.len());
-    c.bench_function("simd_decode/16bit/8k*4B", |b| {
-        b.iter(|| {
-            let _ = streamvb::x86_64::decode::decode_simd(sz, &encoded);
-        })
-    });
+        let (sz, encoded) = encode(&input_16bit);
+        //println!("{}x4B => {}B", sz, encoded.len());
+        c.bench_function("simd_decode/16bit/8k*4B", |b| {
+            b.iter(|| {
+                let _ = streamvb::simd::decode(sz, &encoded);
+            })
+        });
 
-    let (sz, encoded) = encode(&input_16bit);
-    //println!("{}x4B => {}B", sz, encoded.len());
-    c.bench_function("simd_decode_unroll/16bit/8k*4B", |b| {
-        b.iter(|| {
-            let _ = streamvb::x86_64::decode::decode_simd1(sz, &encoded);
-        })
-    });
+        let (sz, encoded) = encode(&input_16bit);
+        //println!("{}x4B => {}B", sz, encoded.len());
+        c.bench_function("simd_decode_unroll/16bit/8k*4B", |b| {
+            b.iter(|| {
+                let _ = streamvb::simd::decode(sz, &encoded);
+            })
+        });
 
-    let (sz, encoded) = encode(&input_16bit);
-    //println!("{}x4B => {}B", sz, encoded.len());
-    c.bench_function("simd_decode_tr/16bit/8k*4B", |b| {
-        b.iter(|| {
-            let _ = unsafe { streamvb::x86_64::decode::decode_simd_trusted_len(sz, &encoded) };
-        })
-    });
+        /*
+        let (sz, encoded) = encode(&input_16bit);
+        //println!("{}x4B => {}B", sz, encoded.len());
+        c.bench_function("simd_decode_tr/16bit/8k*4B", |b| {
+            b.iter(|| {
+                let _ = unsafe { streamvb::x86_64::decode::decode_simd_trusted_len(sz, &encoded) };
+            })
+        });
+        */
 
-    let (sz, encoded) = encode(&input_32bit);
-    //println!("{}x4B => {}B", sz, encoded.len());
-    c.bench_function("simd_decode/32bit/8k*4B", |b| {
-        b.iter(|| {
-            let _ = streamvb::x86_64::decode::decode_simd(sz, &encoded);
-        })
-    });
+        let (sz, encoded) = encode(&input_32bit);
+        //println!("{}x4B => {}B", sz, encoded.len());
+        c.bench_function("simd_decode/32bit/8k*4B", |b| {
+            b.iter(|| {
+                let _ = streamvb::simd::decode(sz, &encoded);
+            })
+        });
 
-    let (sz, encoded) = encode(&input_any);
-    //println!("{}x4B => {}B", sz, encoded.len());
-    c.bench_function("simd_decode/any-bit/8k*4B", |b| {
-        b.iter(|| {
-            let _ = streamvb::x86_64::decode::decode_simd(sz, &encoded);
-        })
-    });
+        let (sz, encoded) = encode(&input_any);
+        //println!("{}x4B => {}B", sz, encoded.len());
+        c.bench_function("simd_decode/any-bit/8k*4B", |b| {
+            b.iter(|| {
+                let _ = streamvb::simd::decode(sz, &encoded);
+            })
+        });
+    }
 }
 
 criterion_group!(benches, criterion_benchmark);

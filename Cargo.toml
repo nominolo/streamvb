@@ -3,8 +3,13 @@ name = "streamvb"
 version = "0.1.0"
 edition = "2018"
 
-[dependencies]
+[features]
+default = []
+# default = ["aarch64-simd"]
+aarch64-simd = []  # nightly only
 
+[dependencies]
+multiversion = "0.6"
 
 [dev-dependencies]
 criterion = "0.3"
