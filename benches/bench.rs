@@ -77,7 +77,11 @@ pub fn bench_encode(c: &mut Criterion) {
     for power in 10..15 {
         let n = 1 << power;
 
-        for (bitname, input) in [("8bit", random_8bit(n)), ("any-bit", random_any_bit(n))] {
+        for (bitname, input) in [
+            ("8bit", random_8bit(n)),
+            ("16bit", random_16bit(n)),
+            ("any-bit", random_any_bit(n)),
+        ] {
             group.throughput(Throughput::Elements(n as u64));
             group.bench_with_input(
                 format!("{}/n={}k", bitname, n / 1024),
@@ -88,16 +92,30 @@ pub fn bench_encode(c: &mut Criterion) {
                     })
                 },
             );
+            // group.bench_with_input(
+            //     format!("unrolled/{}/n={}k", bitname, n / 1024),
+            //     &input,
+            //     |b, input| {
+            //         b.iter(|| {
+            //             let (_len, _bytes) = streamvb::scalar::encode::encode_unrolled(input);
+            //         })
+            //     },
+            // );
         }
     }
     group.finish();
 }
 
+#[allow(unused)]
 pub fn bench_encode_simd(c: &mut Criterion) {
     let mut group = c.benchmark_group("encode_simd");
     for power in 10..15 {
         let n = 1 << power;
 
+        #[cfg(all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "ssse3"
+        ))]
         for (bitname, input) in [("8bit", random_8bit(n)), ("any-bit", random_any_bit(n))] {
             group.throughput(Throughput::Elements(n as u64));
             group.bench_with_input(

@@ -6,7 +6,10 @@ pub mod common;
 pub mod scalar;
 pub(crate) mod tables;
 
-// #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "ssse3"))]
+#[cfg(all(
+    any(target_arch = "x86", target_arch = "x86_64"),
+    target_feature = "ssse3"
+))]
 pub mod x86_64;
 
 #[cfg(all(target_arch = "aarch64", feature = "aarch64-simd"))]
