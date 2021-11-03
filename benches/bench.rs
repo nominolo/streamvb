@@ -1,6 +1,9 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use rand::Rng;
-use streamvb::scalar::{decode::decode, encode::encode};
+use streamvb::scalar::{
+    decode::{decode, decode_unrolled},
+    encode::encode,
+};
 
 #[inline]
 fn fibonacci(n: u64) -> u64 {
@@ -146,6 +149,15 @@ pub fn bench_decode_scalar(c: &mut Criterion) {
                 |b, encoded| {
                     b.iter(|| {
                         let _ = decode(len, encoded);
+                    })
+                },
+            );
+            group.bench_with_input(
+                format!("_unrolled/{}/n={}k", bitname, n / 1024),
+                &encoded,
+                |b, encoded| {
+                    b.iter(|| {
+                        let _ = decode_unrolled(len, encoded);
                     })
                 },
             );
