@@ -1,18 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, Criterion, Throughput};
 use rand::Rng;
-use streamvb::scalar::{
-    decode::{decode, decode_unrolled},
-    encode::encode,
-};
-
-#[inline]
-fn fibonacci(n: u64) -> u64 {
-    match n {
-        0 => 1,
-        1 => 1,
-        n => fibonacci(n - 1) + fibonacci(n - 2),
-    }
-}
+use streamvb::scalar::{decode, encode};
 
 pub fn random_8bit(count: usize) -> Vec<u32> {
     let mut input: Vec<u32> = Vec::with_capacity(count);
@@ -95,15 +83,6 @@ pub fn bench_encode(c: &mut Criterion) {
                     })
                 },
             );
-            // group.bench_with_input(
-            //     format!("unrolled/{}/n={}k", bitname, n / 1024),
-            //     &input,
-            //     |b, input| {
-            //         b.iter(|| {
-            //             let (_len, _bytes) = streamvb::scalar::encode::encode_unrolled(input);
-            //         })
-            //     },
-            // );
         }
     }
     group.finish();
@@ -115,9 +94,12 @@ pub fn bench_encode_simd(c: &mut Criterion) {
     for power in 10..15 {
         let n = 1 << power;
 
-        #[cfg(all(
-            any(target_arch = "x86", target_arch = "x86_64"),
-            target_feature = "ssse3"
+        #[cfg(any(
+            all(target_arch = "aarch64", feature = "aarch64-simd"),
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "ssse3"
+            )
         ))]
         for (bitname, input) in [("8bit", random_8bit(n)), ("any-bit", random_any_bit(n))] {
             group.throughput(Throughput::Elements(n as u64));
@@ -126,20 +108,7 @@ pub fn bench_encode_simd(c: &mut Criterion) {
                 &input,
                 |b, input| {
                     b.iter(|| {
-                        let (_len, _bytes) = streamvb::x86_64::encode::encode(input);
-                    })
-                },
-            );
-        }
-        #[cfg(all(target_arch = "aarch64", feature = "aarch64-simd"))]
-        for (bitname, input) in [("8bit", random_8bit(n)), ("any-bit", random_any_bit(n))] {
-            group.throughput(Throughput::Elements(n as u64));
-            group.bench_with_input(
-                format!("{}/n={}k", bitname, n / 1024),
-                &input,
-                |b, input| {
-                    b.iter(|| {
-                        let (_len, _bytes) = streamvb::aarch64::encode::encode(input);
+                        let (_len, _bytes) = streamvb::simd::encode(input);
                     })
                 },
             );
@@ -162,15 +131,6 @@ pub fn bench_decode_scalar(c: &mut Criterion) {
                 |b, encoded| {
                     b.iter(|| {
                         let _ = decode(len, encoded);
-                    })
-                },
-            );
-            group.bench_with_input(
-                format!("_unrolled/{}/n={}k", bitname, n / 1024),
-                &encoded,
-                |b, encoded| {
-                    b.iter(|| {
-                        let _ = decode_unrolled(len, encoded);
                     })
                 },
             );

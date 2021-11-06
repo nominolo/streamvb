@@ -3,7 +3,7 @@ use crate::{
     tables::len::LENGTH_TABLE,
 };
 
-pub fn encode(input: &[u32]) -> (usize, Vec<u8>) {
+pub fn encode_simd(input: &[u32]) -> (usize, Vec<u8>) {
     let items = input.len();
     if items == 0 {
         return (0, Vec::new());
@@ -150,6 +150,7 @@ unsafe fn encode_worker(
     data
 }
 
+#[allow(dead_code, clippy::needless_range_loop)]
 fn debug_u8x16(data: __m128i) {
     let mut bytes: [u8; 16] = [0; 16];
     unsafe { _mm_storeu_si128(bytes.as_mut_ptr() as *mut __m128i, data) }
@@ -163,6 +164,7 @@ fn debug_u8x16(data: __m128i) {
     println!("]");
 }
 
+#[allow(dead_code, clippy::needless_range_loop)]
 fn debug_u16x8(data: __m128i) {
     let mut bytes: [u16; 8] = [0; 8];
     unsafe { _mm_storeu_si128(bytes.as_mut_ptr() as *mut __m128i, data) }
@@ -254,7 +256,7 @@ mod tests {
         let values = vec![
             0x11, 0x3322, 0x77665544, 0xaa9988, 0x2010, 0x504030, 0x90000060, 0xa0, 0x70, 0x8000,
         ];
-        let (len, encoded) = super::encode(&values);
+        let (len, encoded) = super::encode_simd(&values);
         println!("len={}, encoded: {:x?}", len, encoded);
     }
 
@@ -281,7 +283,7 @@ mod tests {
             let count = 1000 + n;
             let input = random_any_bit(count);
 
-            let (len, encoded) = super::encode(&input);
+            let (len, encoded) = super::encode_simd(&input);
             assert_eq!(len, input.len());
 
             let decoded = crate::scalar::decode::decode(len, &encoded).unwrap();

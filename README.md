@@ -14,7 +14,8 @@ reference.
 | Benchmark      | Platform                    | Elements/second |
 |----------------|-----------------------------|----------------:|
 | memcpy         | AMD Ryzen 9 3900X           |           16.8G |
-| scalar_decode  | AMD Ryzen 9 3900X           |          ~0.98G |
+| scalar_encode  | AMD Ryzen 9 3900X           |          ~0.96G |
+| scalar_decode  | AMD Ryzen 9 3900X           |          ~1.44G |
 | simd_encode    | AMD Ryzen 9 3900X           |     3.6G - 4.1G |
 | simd_decode    | AMD Ryzen 9 3900X           |     5.8G - 6.0G |
 | memcpy         | Apple M1 (Macbook Air 2020) |    9.5G - 15.8G |
