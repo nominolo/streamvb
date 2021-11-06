@@ -46,7 +46,7 @@ pub fn decode_simd(len: usize, input: &[u8]) -> Result<Vec<u32>, StreamVbyteErro
     }
     // Decode the leftovers using scalar decoder.
     unsafe {
-        let (_, ok) = crate::scalar::decode::decode_inner_checked(
+        let (_, ok) = crate::scalar::decode::decode_unroll_inner_checked(
             control_ptr,
             data_ptr,
             end,
