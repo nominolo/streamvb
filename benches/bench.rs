@@ -131,6 +131,19 @@ pub fn bench_encode_simd(c: &mut Criterion) {
                 },
             );
         }
+        #[cfg(all(target_arch = "aarch64", feature = "aarch64-simd"))]
+        for (bitname, input) in [("8bit", random_8bit(n)), ("any-bit", random_any_bit(n))] {
+            group.throughput(Throughput::Elements(n as u64));
+            group.bench_with_input(
+                format!("{}/n={}k", bitname, n / 1024),
+                &input,
+                |b, input| {
+                    b.iter(|| {
+                        let (_len, _bytes) = streamvb::aarch64::encode::encode(input);
+                    })
+                },
+            );
+        }
     }
     group.finish();
 }
