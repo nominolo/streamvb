@@ -3,36 +3,82 @@ use crate::{
     tables::len::LENGTH_TABLE,
 };
 
-pub fn encode_simd(input: &[u32]) -> (usize, Vec<u8>) {
-    let items = input.len();
-    if items == 0 {
-        return (0, Vec::new());
+pub(crate) trait Encoder {
+    #[cfg(target_feature = "sse2")]
+    unsafe fn simd_encode_4x32(data: __m128i) -> __m128i;
+    fn encode_1(x: u32) -> u32;
+}
+
+pub(crate) struct NoEncode;
+impl Encoder for NoEncode {
+    #[cfg(target_feature = "sse2")]
+    #[inline]
+    unsafe fn simd_encode_4x32(data: __m128i) -> __m128i {
+        data
     }
 
-    let mut output: Vec<u8> = Vec::with_capacity(max_compressed_len(items));
+    #[inline]
+    fn encode_1(x: u32) -> u32 {
+        x
+    }
+}
+
+pub(crate) struct ZigZagEncode;
+impl Encoder for ZigZagEncode {
+    #[cfg(target_feature = "sse2")]
+    #[inline]
+    unsafe fn simd_encode_4x32(data: __m128i) -> __m128i {
+        let data_shl_1 = _mm_add_epi32(data, data);
+        let data_shr_31 = _mm_srai_epi32::<31>(data);
+        _mm_xor_si128(data_shl_1, data_shr_31)
+    }
+
+    #[inline]
+    fn encode_1(x: u32) -> u32 {
+        let x: i32 = x as i32;
+        (x as u32).wrapping_add(x as u32) ^ ((x >> 31) as u32)
+    }
+}
+
+pub(crate) fn encode_simd<E: Encoder>(input: &[u32]) -> (usize, Vec<u8>) {
+    let mut output = Vec::new();
+    let items = encode_into_simd::<E>(input, &mut output);
+    (items, output)
+}
+
+pub(crate) fn encode_into_simd<E: Encoder>(input: &[u32], output: &mut Vec<u8>) -> usize {
+    let items = input.len();
+    if items == 0 {
+        return 0;
+    }
+
+    output.reserve(max_compressed_len(items));
+    //let mut output: Vec<u8> = Vec::with_capacity(max_compressed_len(items));
 
     // This always points to where the currently collected control byte needs
     // to be written.
-    let controls: *mut u8 = output.as_mut_ptr();
+    let controls: *mut u8 = unsafe { output.as_mut_ptr().add(output.len()) };
     let data: *mut u8 = unsafe { controls.add(control_bytes_len(items)) };
     let input: *const u32 = input.as_ptr();
 
     unsafe {
-        let data = encode_worker(items, input, controls, data);
+        let data = encode_worker::<E>(items, input, controls, data);
         let len = data.offset_from(output.as_ptr()) as usize;
-        debug_assert!(len <= output.capacity());
-        output.set_len(len)
+        let new_len = output.len() + len;
+        debug_assert!(new_len <= output.capacity());
+        output.set_len(new_len)
     };
 
-    (items, output)
+    items
 }
 
 use std::arch::x86_64::{
-    __m128i, _mm_adds_epu16, _mm_loadu_si128, _mm_min_epi16, _mm_min_epu8, _mm_movemask_epi8,
-    _mm_packus_epi16, _mm_set1_epi16, _mm_set1_epi8, _mm_shuffle_epi8, _mm_storeu_si128,
+    __m128i, _mm_add_epi32, _mm_adds_epu16, _mm_loadu_si128, _mm_min_epi16, _mm_min_epu8,
+    _mm_movemask_epi8, _mm_packus_epi16, _mm_set1_epi16, _mm_set1_epi8, _mm_shuffle_epi8,
+    _mm_srai_epi32, _mm_storeu_si128, _mm_xor_si128,
 };
 
-unsafe fn encode_worker(
+unsafe fn encode_worker<E: Encoder>(
     items: usize,
     mut input: *const u32,
     mut controls: *mut u8,
@@ -47,8 +93,8 @@ unsafe fn encode_worker(
     let end: *const u32 = input.add(items & !7);
     while input != end {
         // Load 8 values / 32 bytes into r0, r1
-        let r0 = _mm_loadu_si128(input as *const __m128i);
-        let r1 = _mm_loadu_si128(input.add(4) as *const __m128i);
+        let r0 = E::simd_encode_4x32(_mm_loadu_si128(input as *const __m128i));
+        let r1 = E::simd_encode_4x32(_mm_loadu_si128(input.add(4) as *const __m128i));
         // debug_u8x16(r0);
         // debug_u8x16(r1);
         // Ex: r0 = 11_00_00_00__22_33_00_00__44_55_66_77__88_99_aa_00
@@ -130,14 +176,14 @@ unsafe fn encode_worker(
     }
     let mut key: u32 = 0;
     for i in 0..items & 7 {
-        let word = *input;
+        let word: u32 = E::encode_1(*input);
 
         let t1 = (word > 0x000000ff) as u32;
         let t2 = (word > 0x0000ffff) as u32;
         let t3 = (word > 0x00ffffff) as u32;
         let symbol = t1 + t2 + t3;
         key |= symbol << (i + i);
-        std::ptr::copy_nonoverlapping(input as *const u8, data, 4);
+        std::ptr::copy_nonoverlapping((&word) as *const u32 as *const u8, data, 4);
         input = input.add(1);
         data = data.add(symbol as usize + 1);
     }
@@ -149,6 +195,43 @@ unsafe fn encode_worker(
 
     data
 }
+
+/*
+#[inline]
+pub fn zigzag_encode_1(x: i32) -> u32 {
+    (x as u32).wrapping_add(x as u32) ^ ((x >> 31) as u32)
+}
+
+#[cfg(target_feature = "sse2")]
+pub unsafe fn zigzag_encode_4x32(data: __m128i) -> __m128i {
+    let data_shl_1 = _mm_add_epi32(data, data); // SSE2
+    let data_shr_31 = _mm_srai_epi32::<31>(data); // SSE2
+    _mm_xor_si128(data_shl_1, data_shr_31) // SSE2
+}
+
+#[cfg(target_feature = "avx2")]
+pub unsafe fn zigzag_encode_8x32(data: __m256i) -> __m256i {
+    use std::arch::x86_64::{_mm256_add_epi32, _mm256_srai_epi32, _mm256_xor_si256};
+    let data_shl_1 = _mm256_add_epi32(data, data);
+    let data_shr_31 = _mm256_srai_epi32::<32>(data);
+    _mm256_xor_si256(data_shl_1, data_shr_31)
+}
+
+pub fn zigzag_encode_into(input: &[i32], output: &mut Vec<u32>) {
+    output.reserve(input.len());
+    let count = input.len();
+    let mut src: *const i32 = input.as_ptr();
+    let mut dst: *mut u32 = output.as_mut_ptr();
+    unsafe {
+        for _ in 0..count {
+            *dst = zigzag_encode_1(*src);
+            src = src.add(1);
+            dst = dst.add(1);
+        }
+        output.set_len(output.len() + count)
+    }
+}
+// */
 
 #[allow(dead_code, clippy::needless_range_loop)]
 fn debug_u8x16(data: __m128i) {
@@ -251,12 +334,14 @@ const ENCODING_SHUFFLE_TABLE: [[u8; 16]; 64] = [
 mod tests {
     use rand::Rng;
 
+    use crate::x86_64::encode::NoEncode;
+
     #[test]
     fn encode_step() {
         let values = vec![
             0x11, 0x3322, 0x77665544, 0xaa9988, 0x2010, 0x504030, 0x90000060, 0xa0, 0x70, 0x8000,
         ];
-        let (len, encoded) = super::encode_simd(&values);
+        let (len, encoded) = super::encode_simd::<NoEncode>(&values);
         println!("len={}, encoded: {:x?}", len, encoded);
     }
 
@@ -283,7 +368,7 @@ mod tests {
             let count = 1000 + n;
             let input = random_any_bit(count);
 
-            let (len, encoded) = super::encode_simd(&input);
+            let (len, encoded) = super::encode_simd::<NoEncode>(&input);
             assert_eq!(len, input.len());
 
             let decoded = crate::scalar::decode::decode(len, &encoded).unwrap();

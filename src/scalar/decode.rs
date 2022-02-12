@@ -35,7 +35,7 @@ pub fn decode(len: usize, input: &[u8]) -> Result<Vec<u32>, StreamVbyteError> {
     let mut result: Vec<u32> = Vec::with_capacity(len);
     let out: *mut u32 = result.as_mut_ptr();
     unsafe {
-        let (_out, ok) = decode_unroll_inner_checked(control, data, end, out, len);
+        let (_out, ok) = decode_unroll_inner_checked(control, data, end, out, len, |x| x);
         if ok {
             result.set_len(len);
         } else {
@@ -48,13 +48,17 @@ pub fn decode(len: usize, input: &[u8]) -> Result<Vec<u32>, StreamVbyteError> {
 // Returns the final output pointer and whether all values were in bounds.
 // If `(_, false)` is returned, decoding ended early because the
 #[inline]
-pub(crate) unsafe fn decode_unroll_inner_checked(
+pub(crate) unsafe fn decode_unroll_inner_checked<F>(
     mut control: *const u8,
     mut data: *const u8,
     end: *const u8,
     mut out: *mut u32,
     len: usize,
-) -> (*mut u32, bool) {
+    f: F,
+) -> (*mut u32, bool)
+where
+    F: Fn(u32) -> u32,
+{
     // We know: control < data, Therfore, if we run out of bounds it will be
     // the data pointer.
     let mut len_remaining = len;
@@ -74,19 +78,19 @@ pub(crate) unsafe fn decode_unroll_inner_checked(
         let key4 = key >> 6;
 
         let val: u32 = (data as *const u32).read_unaligned();
-        *out = val & !((!0xff) << (8 * key1)); // mask out the extra bytes
+        *out = f(val & !((!0xff) << (8 * key1))); // mask out the extra bytes
         data = data.add(key1 as usize + 1);
 
         let val: u32 = (data as *const u32).read_unaligned();
-        *out.add(1) = val & !((!0xff) << (8 * key2));
+        *out.add(1) = f(val & !((!0xff) << (8 * key2)));
         data = data.add(key2 as usize + 1);
 
         let val: u32 = (data as *const u32).read_unaligned();
-        *out.add(2) = val & !((!0xff) << (8 * key3));
+        *out.add(2) = f(val & !((!0xff) << (8 * key3)));
         data = data.add(key3 as usize + 1);
 
         let val: u32 = (data as *const u32).read_unaligned();
-        *out.add(3) = val & !((!0xff) << (8 * key4));
+        *out.add(3) = f(val & !((!0xff) << (8 * key4)));
         data = data.add(key4 as usize + 1);
         out = out.add(4);
     }
@@ -109,7 +113,7 @@ pub(crate) unsafe fn decode_unroll_inner_checked(
         }
         let val = extract_bytes(data, nbytes);
         data = next_data;
-        *out = val;
+        *out = f(val);
         out = out.add(1);
         shift += 2;
     }

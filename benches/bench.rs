@@ -102,13 +102,46 @@ pub fn bench_encode_simd(c: &mut Criterion) {
             )
         ))]
         for (bitname, input) in [("8bit", random_8bit(n)), ("any-bit", random_any_bit(n))] {
+            let mut output: Vec<u8> = Vec::with_capacity(streamvb::max_compressed_len(input.len()));
             group.throughput(Throughput::Elements(n as u64));
             group.bench_with_input(
                 format!("{}/n={}k", bitname, n / 1024),
                 &input,
                 |b, input| {
                     b.iter(|| {
-                        let (_len, _bytes) = streamvb::simd::encode(input);
+                        let _len = streamvb::simd::encode_into(input, &mut output);
+                        output.clear();
+                    })
+                },
+            );
+        }
+    }
+    group.finish();
+}
+
+#[allow(unused)]
+pub fn bench_zigzag_encode_simd(c: &mut Criterion) {
+    let mut group = c.benchmark_group("zigzag_encode_simd");
+    for power in 10..15 {
+        let n = 1 << power;
+
+        #[cfg(any(
+            all(target_arch = "aarch64", feature = "aarch64-simd"),
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "ssse3"
+            )
+        ))]
+        for (bitname, input) in [("8bit", random_8bit(n)), ("any-bit", random_any_bit(n))] {
+            let mut output: Vec<u8> = Vec::with_capacity(streamvb::max_compressed_len(input.len()));
+            group.throughput(Throughput::Elements(n as u64));
+            group.bench_with_input(
+                format!("{}/n={}k", bitname, n / 1024),
+                &input,
+                |b, input| {
+                    b.iter(|| {
+                        let _len = streamvb::simd::zigzag_encode_into(input, &mut output);
+                        output.clear();
                     })
                 },
             );
@@ -156,12 +189,49 @@ pub fn bench_decode_simd(c: &mut Criterion) {
             for (bitname, input) in [("8bit", random_8bit(n)), ("any-bit", random_any_bit(n))] {
                 group.throughput(Throughput::Elements(n as u64));
                 let (len, encoded) = encode(&input);
+                let mut output: Vec<u32> = Vec::with_capacity(len);
                 group.bench_with_input(
                     format!("{}/n={}k", bitname, n / 1024),
                     &encoded,
                     |b, encoded| {
                         b.iter(|| {
-                            let _ = streamvb::simd::decode(len, encoded);
+                            let _ = streamvb::simd::decode_into(len, encoded, &mut output).unwrap();
+                            output.clear();
+                        })
+                    },
+                );
+            }
+        }
+        group.finish();
+    }
+}
+
+#[allow(unused_variables)]
+pub fn bench_zigzag_decode_simd(c: &mut Criterion) {
+    #[cfg(any(
+        all(target_arch = "aarch64", feature = "aarch64-simd"),
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "ssse3"
+        )
+    ))]
+    {
+        let mut group = c.benchmark_group("zigzag_decode_simd");
+        for power in 10..15 {
+            let n = 1 << power;
+
+            for (bitname, input) in [("8bit", random_8bit(n)), ("any-bit", random_any_bit(n))] {
+                group.throughput(Throughput::Elements(n as u64));
+                let (len, encoded) = encode(&input);
+                let mut output: Vec<u32> = Vec::with_capacity(len);
+                group.bench_with_input(
+                    format!("{}/n={}k", bitname, n / 1024),
+                    &encoded,
+                    |b, encoded| {
+                        b.iter(|| {
+                            let _ = streamvb::simd::zigzag_decode_into(len, encoded, &mut output)
+                                .unwrap();
+                            output.clear();
                         })
                     },
                 );
@@ -255,7 +325,9 @@ criterion_group!(
     bench_memcpy,
     bench_encode,
     bench_encode_simd,
+    bench_zigzag_encode_simd,
     bench_decode_scalar,
-    bench_decode_simd
+    bench_decode_simd,
+    bench_zigzag_decode_simd,
 );
 criterion_main!(benches);

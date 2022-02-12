@@ -66,7 +66,7 @@ pub fn encode(values: &[u32]) -> (usize, Vec<u8>) {
     ))]
     {
         // println!("Using x86-64 simd");
-        return crate::x86_64::encode::encode_simd(values);
+        return crate::x86_64::encode::encode_simd::<crate::x86_64::encode::NoEncode>(values);
     }
 
     #[cfg(all(target_arch = "aarch64", feature = "aarch64-simd"))]
@@ -85,6 +85,9 @@ pub fn encode(values: &[u32]) -> (usize, Vec<u8>) {
         crate::scalar::encode::encode(values)
     }
 }
+
+//pub use crate::x86_64::encode::zigzag_encode_into;
+// pub use crate::x86_64::decode::zigzag_decode_into;
 
 /// Decode bytes encoded using [encode] into the original `u32` values.
 ///
@@ -111,7 +114,7 @@ pub fn decode(len: usize, input: &[u8]) -> Result<Vec<u32>, StreamVbyteError> {
     ))]
     {
         // println!("Using x86-64 simd");
-        return crate::x86_64::decode::decode_simd(len, input);
+        return crate::x86_64::decode::decode_simd::<crate::x86_64::decode::NoDecode>(len, input);
     }
 
     #[cfg(all(target_arch = "aarch64", feature = "aarch64-simd"))]
